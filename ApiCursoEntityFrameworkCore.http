@@ -1,0 +1,6 @@
+@ApiCursoEntityFrameworkCore_HostAddress = http://localhost:5090
+
+GET {{ApiCursoEntityFrameworkCore_HostAddress}}/api/Genres/
+Accept: application/json
+
+###
