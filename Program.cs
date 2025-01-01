@@ -12,6 +12,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(ConnectionString, sql => sql.UseNetTopologySuite());
     //La siguiente linea hace que el AsNoTracking funcione de forma global y no es necesario ponerlo en la query
     options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+    //La siguiente linea hace que el LazyLoading funcione de forma global
+    //options.UseLazyLoadingProxies();
 });
 
 builder.Services.AddAutoMapper(typeof(Program));
