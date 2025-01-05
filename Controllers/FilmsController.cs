@@ -139,6 +139,7 @@ namespace ApiCursoEntityFrameworkCore.Controllers
                     .ThenInclude(g => g.Genre)
                 .Include(mt => mt.FilmsMovieTheaters)
                     .ThenInclude(mt => mt.MovieTheater)
+                        .ThenInclude(mt2 => mt2.Movie)
                 .Include(ma => ma.FilmsActors)
                     .ThenInclude(fa => fa.Actor)
                 .FirstOrDefaultAsync(f => f.Id == Id);
@@ -146,7 +147,16 @@ namespace ApiCursoEntityFrameworkCore.Controllers
             if (film is null)
                 return NotFound();
 
-            return Ok(film);
+            return Ok(new 
+            {
+                Genres = film.FilmsGenres
+                    .Select(fg => fg.Genre.Name),
+                MovieOrCinema = film.FilmsMovieTheaters
+                    .Select(mt => mt.MovieTheater.Movie.Name)
+                    .Distinct(),
+                Actors = film.FilmsActors
+                    .Select(pa => pa.Actor.Name)
+            });
         }
 
         [HttpGet("GetInformationWithAutomapper")]
@@ -157,8 +167,8 @@ namespace ApiCursoEntityFrameworkCore.Controllers
         {
             //Para poder filtrar la lista de generos podemos hacerlo directamente desde el archivo de mapeo AutomapperProfile
             var film = await _context.FilmTable
-                .ProjectTo<FilmDTO>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync();
+                .ProjectTo<FilmAutoMapperDTO>(_mapper.ConfigurationProvider)
+                .FirstOrDefaultAsync(x => x.Id == Id);
             
             if (film is null)
                 return NotFound();
@@ -225,7 +235,13 @@ namespace ApiCursoEntityFrameworkCore.Controllers
             if (film is null)
                 return NotFound();
 
-            return Ok(film);
+            return Ok(new 
+            {
+                Id = film.Id,
+                Title = film.Title,
+                Actors = film.FilmsActors,
+                CountGenres
+            });
         }
 
         [HttpGet("GetLazyLoading")]
@@ -277,16 +293,19 @@ namespace ApiCursoEntityFrameworkCore.Controllers
 
             //TODO: revisar esto con la base de datos que hay en el otro pc.
             var filmsGrouped = await _context.FilmTable
-                .Include(f => f.FilmsGenres.GroupBy(x => x.Genre))
-                .Select(f => new
-                {
-                    CountGenre = f.FilmsGenres.Count(),
-                    Titles = f.Title,
-                    Genres = f.FilmsGenres
-                        .Select(fg => fg.Genre.Name)
-                }).ToListAsync();
+                .Include(f => f.FilmsGenres)
+                    .ThenInclude(fg => fg.Genre)
+                .Select(
+                    f => new
+                    {
+                        f.Id,
+                        f.Title,
+                        Genres = f.FilmsGenres.Select(fg => fg.Genre.Name)
+                    }
+                )
+                .ToListAsync();
 
-            return Ok(filmsGrouped);
+            return Ok(filmsGrouped.GroupBy(x => x.Genres));
         }
 
         [HttpGet("GetDynamicsFilters")]
@@ -296,7 +315,14 @@ namespace ApiCursoEntityFrameworkCore.Controllers
         public async Task<ActionResult> GetDynamicsFilters([FromQuery] FilmsFiltersDTO filmsFilters)
         {
 
-            var filmsQueryable = _context.FilmTable.AsQueryable();
+            var filmsQueryable = _context.FilmTable
+                .Include(x => x.FilmsActors)
+                    .ThenInclude(x => x.Actor)
+                .Include(x => x.FilmsGenres)
+                    .ThenInclude(x => x.Genre)
+                .Include(x => x.FilmsMovieTheaters)
+                    .ThenInclude(x => x.MovieTheater)
+                .AsQueryable();
 
             if (string.IsNullOrEmpty(filmsFilters.TitleFilm) == false  && string.IsNullOrWhiteSpace(filmsFilters.TitleFilm) == false)
             {
@@ -321,7 +347,14 @@ namespace ApiCursoEntityFrameworkCore.Controllers
                 filmsQueryable = filmsQueryable.Where(f => f.PremiereDate > dateToday);
             }
 
-            return Ok(filmsQueryable);
+            return Ok(filmsQueryable
+                .Select(x => new 
+                {   
+                    Title = x.Title,
+                    Genres = x.FilmsGenres.Select(y => y.Genre.Name),
+                    InMovies= x.InMovie,
+                    IsPremiere = filmsFilters.NextPremieres
+                }));
         }
     }
 }

@@ -15,6 +15,8 @@ namespace ApiCursoEntityFrameworkCore.Automapper
                 .ForMember(dto => dto.Latitud, ent => ent.MapFrom(prop => prop.Location.Y))
                 .ForMember(dto => dto.Longitud, ent => ent.MapFrom(prop => prop.Location.X));
 
+            CreateMap<Movie, MoviesAutomapperDTO>();
+
             CreateMap<Genre, GenreDTO>();
 
             CreateMap<FilmsActors, FilmsActorDTO>()
@@ -26,10 +28,15 @@ namespace ApiCursoEntityFrameworkCore.Automapper
             CreateMap<FilmsMovieTheaters, FilmsMovieTheatersDTO>()
                 .ForMember(dto => dto.MovieTheater, ent => ent.MapFrom(prop => prop.MovieTheater));
 
-            CreateMap<Film, FilmDTO>()
-                .ForMember(dto => dto.Genres, ent => ent.MapFrom(prop => prop.FilmsGenres.Select(mc => mc.Genre)))
-                .ForMember(dto => dto.CinemasOrMovies, ent => ent.MapFrom(prop => prop.FilmsMovieTheaters.Select(mc => mc.MovieTheater)))
-                .ForMember(dto => dto.Actors, ent => ent.MapFrom(prop => prop.FilmsActors.Select(mc => mc.Actor)));
+            //CreateMap<Film, FilmDTO>()
+            //    .ForMember(dto => dto.Genres, ent => ent.MapFrom(prop => prop.FilmsGenres.Select(mc => mc.Genre)))
+            //    .ForMember(dto => dto.CinemasOrMovies, ent => ent.MapFrom(prop => prop.FilmsMovieTheaters.Select(mc => mc.MovieTheater)))
+            //    .ForMember(dto => dto.Actors, ent => ent.MapFrom(prop => prop.FilmsActors.Select(mc => mc.Actor)));
+
+            CreateMap<Film, FilmAutoMapperDTO>()
+                .ForMember(dto => dto.Genres, ent => ent.MapFrom(prop => prop.FilmsGenres.Select(x => x.Genre)))
+                .ForMember(dto => dto.CinemasOrMovies, ent => ent.MapFrom(prop => prop.FilmsMovieTheaters.Select(x => x.MovieTheater.Movie)))
+                .ForMember(dto => dto.Actors, ent => ent.MapFrom(prop => prop.FilmsActors.Select(x => x.Actor)));
 
         }
     }
